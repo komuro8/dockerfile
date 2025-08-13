@@ -1,0 +1,27 @@
+# Etapa de compilación
+FROM golang:1.22 AS build
+
+# Pasar el token como argumento (no quedará en la imagen final)
+ARG GIT_TOKEN
+ARG REPO_URL=github.com/komuro8/dockergo
+
+# Instalar git y clonar solo la última versión del repo
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* \
+    && git clone --depth=1 https://${GIT_TOKEN}@${REPO_URL}.git /src
+
+# Compilar el proyecto
+WORKDIR /src/project
+RUN sed -i 's/\\n\\//g' main.go \
+    && go mod init dockergo \
+    && go mod tidy \
+    && go build -v -o /src/server .
+
+# Etapa final
+FROM debian:bookworm-slim
+
+# Copiar solo el binario compilado
+WORKDIR /app
+COPY --from=build /src/server .
+
+EXPOSE 8080
+CMD ["./server"]
