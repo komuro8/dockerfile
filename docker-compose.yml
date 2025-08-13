@@ -1,3 +1,9 @@
+version: "3.9"
+
+x-buildkit: &buildkit
+  environment:
+    DOCKER_BUILDKIT: 1
+
 services:
   postgres:
     image: postgres:16
@@ -15,6 +21,7 @@ services:
       - appnet
 
   backend:
+    <<: *buildkit
     build:
       context: .
       dockerfile: Dockerfile.backend

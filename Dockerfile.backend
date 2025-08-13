@@ -1,27 +1,37 @@
-# Etapa de compilación
+# Etapa 1: compilación
 FROM golang:1.22 AS build
 
-# Pasar el token como argumento (no quedará en la imagen final)
+# Instalar git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Argumentos para el token y repo
 ARG GIT_TOKEN
-ARG REPO_URL=github.com/komuro8/dockergo
+ARG REPO_URL=github.com/komuro8/dockergo.git
 
-# Instalar git y clonar solo la última versión del repo
-RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/* \
-    && git clone --depth=1 https://${GIT_TOKEN}@${REPO_URL}.git /src
+# Directorio de trabajo
+WORKDIR /src
 
-# Compilar el proyecto
-WORKDIR /src/project
-RUN sed -i 's/\\n\\//g' main.go \
-    && go mod init dockergo \
-    && go mod tidy \
-    && go build -v -o /src/server .
+# Clonar el repositorio privado (se borra el token después para seguridad)
+RUN git clone https://${GIT_TOKEN}@${REPO_URL} repo && \
+    rm -rf ~/.git-credentials
 
-# Etapa final
+# Entrar a la carpeta del proyecto (ajustar si no es "project")
+WORKDIR /src/repo/project
+
+# Limpiar main.go si tiene \n\
+RUN sed -i 's/\\n\\//g' main.go
+
+RUN go mod init dockergo
+
+# Descargar dependencias (sin init si ya existe go.mod)
+RUN go mod tidy
+
+# Compilar binario
+RUN CGO_ENABLED=0 GOOS=linux go build -o /src/server .
+
+# Etapa 2: imagen final mínima
 FROM debian:bookworm-slim
-
-# Copiar solo el binario compilado
 WORKDIR /app
 COPY --from=build /src/server .
-
 EXPOSE 8080
 CMD ["./server"]
