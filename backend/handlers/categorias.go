@@ -9,7 +9,22 @@ import (
 )
 
 func CrearCategoria(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "TODO: Crear categoría"})
+	var categoria models.Categoria
+	if err := c.ShouldBindJSON(&categoria); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	_, err := database.DB.Exec(
+		"INSERT INTO categorias (nombre, descripcion) VALUES ($1, $2)",
+		categoria.Nombre, categoria.Descripcion,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Categoría creada"})
 }
 
 func ListarCategorias(c *gin.Context) {
@@ -34,5 +49,11 @@ func ListarCategorias(c *gin.Context) {
 }
 
 func EliminarCategoria(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "TODO: Eliminar categoría"})
+	id := c.Param("id")
+	_, err := database.DB.Exec("DELETE FROM categorias WHERE id=$1", id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Categoría eliminada"})
 }

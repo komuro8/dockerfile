@@ -16,5 +16,7 @@ RUN go build -v -o /server .
 FROM debian:bookworm-slim
 WORKDIR /app
 COPY --from=build /server .
+COPY backend/wait-for-postgres.sh .
+RUN apt-get update && apt-get install -y postgresql-client && chmod +x wait-for-postgres.sh
 EXPOSE 8080
-CMD ["./server"]
+CMD ["./wait-for-postgres.sh", "postgres-db", "./server"]

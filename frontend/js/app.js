@@ -6,6 +6,12 @@ function listarCategorias() {
         .then(data => {
             const ul = document.getElementById("categorias");
             ul.innerHTML = "";
+
+            if (!Array.isArray(data)) {
+                ul.innerHTML = `<li>Error: ${JSON.stringify(data)}</li>`;
+                return;
+            }
+
             data.forEach(cat => {
                 ul.innerHTML += `<li>${cat.nombre} - ${cat.descripcion}</li>`;
             });
